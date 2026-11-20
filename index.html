@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusB2B — Com.soc Payments</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e32',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom subtle scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-600 selection:text-white min-h-screen flex flex-col">
+
+    <!-- Top Navigation & Active Company Switcher -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between h-auto py-3 md:h-16 gap-3">
+                <!-- Brand -->
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                        <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg tracking-tight text-slate-900">Nexus<span class="text-indigo-600">B2B</span></span>
+                        <span class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">Com.soc</span>
+                        <span class="hidden sm:inline-block ml-2 text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Demo workspace</span>
+                    </div>
+                </div>
+
+                <!-- Active Company Switcher (Simulates operating as any registered business) -->
+                <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                    <div class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/70 transition-colors px-3 py-1.5 rounded-xl border border-slate-200 w-full sm:w-auto">
+                        <span class="text-xs font-medium text-slate-500 whitespace-nowrap">Acting As:</span>
+                        <select id="activeCompanySelect" onchange="switchActiveCompany(this.value)" class="bg-transparent text-sm font-semibold text-slate-900 focus:outline-none cursor-pointer w-full sm:w-52 truncate">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <button onclick="openNewCompanyModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm whitespace-nowrap" title="Register a new business entity">
+                        <i data-lucide="building-2" class="w-4 h-4 text-indigo-600"></i>
+                        <span class="hidden md:inline">Register Entity</span>
+                    </button>
+
+                    <button onclick="openReceivePaymentModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-md whitespace-nowrap"><i data-lucide="wallet" class="w-4 h-4"></i><span>Receive Payment</span></button>
+                    <button onclick="openTransactionModal()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md shadow-indigo-200 whitespace-nowrap">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>New Transaction</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Payment integration status: this ledger is a demo; only verified Paystack payments are real. -->
+    <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+        <strong>Demo mode:</strong> The sample companies and treasury balances below are simulated and are not real money.
+        Real customer payments for Com.soc are handled separately through secure Paystack checkout. The merchant settlement account is configured privately in the approved Paystack dashboard.
+      </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Active Entity Overview Banner & KPI Cards -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Active Entity Profile Card -->
+            <div class="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-850 to-indigo-950 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+                <div class="absolute -right-8 -top-8 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="flex items-start justify-between gap-3 relative z-10">
+                    <div class="flex items-center gap-3">
+                        <div id="activeCompanyAvatar" class="w-12 h-12 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-xl font-bold text-indigo-300">
+                            AX
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 id="activeCompanyName" class="font-bold text-lg leading-tight">Apex Freight & Logistics</h1>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                    Demo profile
+                                </span>
+                            </div>
+                            <p id="activeCompanyMeta" class="text-xs text-slate-300 mt-0.5">Logistics & Supply Chain • Reg: #B2B-8841</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-white/10 flex items-end justify-between relative z-10">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Available Operating Treasury</p>
+                        <p id="activeCompanyBalance" class="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white mt-0.5">$420,500.00</p>
+                    </div>
+                    <button onclick="openTopUpModal()" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium text-white border border-white/15 transition flex items-center gap-1.5">
+                        <i data-lucide="wallet" class="w-3.5 h-3.5"></i> Add Funds
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3 Financial / Volume KPI Cards -->
+            <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">In Escrow / Held</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p id="kpiEscrow" class="text-2xl font-bold font-mono text-slate-900">$0.00</p>
+                        <p id="kpiEscrowCount" class="text-xs text-slate-500 mt-1">0 active milestone/escrow deals</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Receivables (Inbound)</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p id="kpiInbound" class="text-2xl font-bold font-mono text-emerald-600">$0.00</p>
+                        <p class="text-xs text-slate-500 mt-1">Settled & pending inflows</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Payables (Outbound)</span>
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p id="kpiOutbound" class="text-2xl font-bold font-mono text-slate-900">$0.00</p>
+                        <p class="text-xs text-slate-500 mt-1">Total dispatched capital</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center justify-between border-b border-slate-200 overflow-x-auto">
+            <nav class="flex space-x-6" aria-label="Tabs">
+                <button onclick="switchTab('ledger')" id="tab-ledger" class="tab-btn border-b-2 border-indigo-600 text-indigo-600 py-3 px-1 text-sm font-semibold whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-4 h-4"></i>
+                    Transaction Ledger
+                    <span id="badge-tx-count" class="ml-1 py-0.5 px-2 rounded-full text-xs bg-indigo-50 text-indigo-600">0</span>
+                </button>
+                <button onclick="switchTab('directory')" id="tab-directory" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-3 px-1 text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    Verified Company Directory
+                    <span id="badge-company-count" class="ml-1 py-0.5 px-2 rounded-full text-xs bg-slate-100 text-slate-600">0</span>
+                </button>
+            </nav>
+
+            <!-- Filter controls for Ledger -->
+            <div id="ledgerFilters" class="hidden sm:flex items-center gap-2 py-2">
+                <select id="filterTxType" onchange="renderLedger()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:border-indigo-500">
+                    <option value="ALL">All Transaction Types</option>
+                    <option value="Direct Invoice">Direct Invoice</option>
+                    <option value="Escrow Contract">Escrow Contract</option>
+                    <option value="Milestone Tranche">Milestone Tranche</option>
+                    <option value="Barter / Asset Swap">Barter / Asset Swap</option>
+                    <option value="Recurring Retainer">Recurring Retainer</option>
+                </select>
+                <select id="filterTxStatus" onchange="renderLedger()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:border-indigo-500">
+                    <option value="ALL">All Statuses</option>
+                    <option value="Completed">Completed</option>
+                    <option value="In Escrow">In Escrow</option>
+                    <option value="Awaiting Approval">Awaiting Approval</option>
+                    <option value="Disputed">Disputed</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- TAB 1: TRANSACTION LEDGER -->
+        <section id="view-ledger" class="space-y-4">
+            <!-- Mobile Filter Bar -->
+            <div class="flex sm:hidden gap-2">
+                <select onchange="document.getElementById('filterTxType').value = this.value; renderLedger()" class="w-1/2 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700">
+                    <option value="ALL">All Types</option>
+                    <option value="Direct Invoice">Direct Invoice</option>
+                    <option value="Escrow Contract">Escrow Contract</option>
+                    <option value="Milestone Tranche">Milestone Tranche</option>
+                    <option value="Barter / Asset Swap">Barter / Asset Swap</option>
+                    <option value="Recurring Retainer">Recurring Retainer</option>
+                </select>
+                <select onchange="document.getElementById('filterTxStatus').value = this.value; renderLedger()" class="w-1/2 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700">
+                    <option value="ALL">All Statuses</option>
+                    <option value="Completed">Completed</option>
+                    <option value="In Escrow">In Escrow</option>
+                    <option value="Awaiting Approval">Awaiting Approval</option>
+                    <option value="Disputed">Disputed</option>
+                </select>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                <th class="py-3.5 px-4">Ref & Date</th>
+                                <th class="py-3.5 px-4">Counterparties & Sectors</th>
+                                <th class="py-3.5 px-4">Transaction Type & Terms</th>
+                                <th class="py-3.5 px-4 text-right">Value / Asset</th>
+                                <th class="py-3.5 px-4">Status</th>
+                                <th class="py-3.5 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyLedgerState" class="hidden py-12 px-4 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="file-search" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-900">No matching transactions found</h3>
+                    <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Initiate a new cross-sector invoice, escrow agreement, or asset swap to populate the clearing ledger.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: COMPANY DIRECTORY -->
+        <section id="view-directory" class="hidden space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">Cross-Industry Counterparty Network</h2>
+                    <p class="text-xs text-slate-500">Select any enterprise below to initiate a direct payment, escrow contract, or resource trade.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="filterSector" onchange="renderDirectory()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-indigo-500">
+                        <option value="ALL">All Industries / Sectors</option>
+                        <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                        <option value="Cloud & Enterprise SaaS">Cloud & Enterprise SaaS</option>
+                        <option value="AgriTech & Commodities">AgriTech & Commodities</option>
+                        <option value="Industrial Manufacturing">Industrial Manufacturing</option>
+                        <option value="Creative & Media Agency">Creative & Media Agency</option>
+                        <option value="Renewable Energy">Renewable Energy</option>
+                        <option value="Retail & Distribution">Retail & Distribution</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="directoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Cards injected by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: CREATE NEW TRANSACTION -->
+    <div id="transactionModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Initiate B2B Transaction</h3>
+                        <p class="text-xs text-slate-500">Executing from <span id="modalSenderName" class="font-semibold text-slate-700"></span></p>
+                    </div>
+                </div>
+                <button onclick="closeModal('transactionModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="newTransactionForm" onsubmit="handleCreateTransaction(event)" class="p-6 space-y-4">
+                <!-- Direction & Counterparty -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Direction</label>
+                        <select id="txDirection" onchange="updateFormLabels()" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <option value="OUTBOUND">Pay / Send to Counterparty</option>
+                            <option value="INBOUND">Request Payment / Bill Client</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Counterparty Company</label>
+                        <select id="txCounterparty" required class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Transaction Instrument Type -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Type / Instrument</label>
+                    <select id="txType" onchange="toggleBarterFields()" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        <option value="Direct Invoice">Direct Invoice (Instant Treasury Settlement)</option>
+                        <option value="Escrow Contract">Escrow Contract (Funds Locked Until Delivery)</option>
+                        <option value="Milestone Tranche">Milestone Tranche (Phased Project Release)</option>
+                        <option value="Recurring Retainer">Recurring Retainer (Monthly Service Agreement)</option>
+                        <option value="Barter / Asset Swap">Barter / Asset Swap (Goods-for-Services Exchange)</option>
+                    </select>
+                    <p id="txTypeHelper" class="text-[11px] text-slate-500 mt-1">Instant settlement transfers funds immediately upon execution.</p>
+                </div>
+
+                <!-- Amount & Currency -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label id="txAmountLabel" class="block text-xs font-semibold text-slate-700 mb-1">Settlement Amount (USD)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 text-slate-400 font-mono text-sm">$</span>
+                            <input type="number" id="txAmount" min="1" step="0.01" required placeholder="15000.00" class="w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Settlement Rail</label>
+                        <select id="txRail" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <option value="Instant Wire">Instant Wire</option>
+                            <option value="ACH / SEPA">ACH / SEPA</option>
+                            <option value="Smart Escrow">Smart Escrow</option>
+                            <option value="Credit Line">Net-30 Credit</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Optional Barter Asset Description -->
+                <div id="barterAssetBox" class="hidden bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <label class="block text-xs font-semibold text-amber-900">Barter / In-Kind Deliverables Offered in Exchange</label>
+                    <input type="text" id="txBarterAsset" placeholder="e.g., 400 hrs Cloud Compute Credits or 20 Tons Grade-A Cocoa" class="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+
+                <!-- Contract / Invoice Description -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Scope of Work / Deliverable Memo</label>
+                    <input type="text" id="txMemo" required placeholder="e.g., Q4 Cold-Chain Logistics Fleet & Warehouse Allocation" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('transactionModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md shadow-indigo-200 flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        Execute Transaction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: REGISTER NEW COMPANY -->
+    <div id="newCompanyModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="building-2" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Onboard New Business Entity</h3>
+                </div>
+                <button onclick="closeModal('newCompanyModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleRegisterCompany(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Company Legal Name</label>
+                    <input type="text" id="compName" required placeholder="e.g., Helios Solar Grids Ltd." class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Industry Sector</label>
+                    <select id="compSector" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-indigo-500">
+                        <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                        <option value="Cloud & Enterprise SaaS">Cloud & Enterprise SaaS</option>
+                        <option value="AgriTech & Commodities">AgriTech & Commodities</option>
+                        <option value="Industrial Manufacturing">Industrial Manufacturing</option>
+                        <option value="Creative & Media Agency">Creative & Media Agency</option>
+                        <option value="Renewable Energy">Renewable Energy</option>
+                        <option value="Retail & Distribution">Retail & Distribution</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Headquarters</label>
+                        <input type="text" id="compLocation" required placeholder="e.g., Lagos / London" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Initial Treasury ($)</label>
+                        <input type="number" id="compBalance" required min="1000" value="250000" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Core Capabilities / Offerings</label>
+                    <input type="text" id="compOffering" required placeholder="e.g., Commercial Microgrids & Battery Storage" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('newCompanyModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200">Onboard Company</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: TREASURY TOP-UP -->
+    <div id="topUpModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-900">Deposit Operating Capital</h3>
+                <button onclick="closeModal('topUpModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleTopUp(event)" class="p-6 space-y-4">
+                <p class="text-xs text-slate-500">Inject liquidity into <span id="topUpCompanyName" class="font-semibold text-slate-800"></span>'s clearing account.</p>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deposit Amount (USD)</label>
+                    <input type="number" id="topUpAmount" min="100" step="100" value="50000" required class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('topUpModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">Confirm Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: TRANSACTION AUDIT / RECEIPT INSPECTOR -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-check-2" class="w-5 h-5 text-indigo-600"></i>
+                    <h3 class="text-base font-bold text-slate-900">Clearing Certificate & Audit Trail</h3>
+                </div>
+                <button onclick="closeModal('detailModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="detailModalBody" class="p-6 space-y-4 text-sm">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeModal('detailModal')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800">Close Receipt</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- PAYSTACK CHECKOUT REQUEST -->
+    <div id="receivePaymentModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden my-auto">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div><h3 class="text-base font-bold text-slate-900">Pay Com.soc</h3>
+          <p class="text-xs text-slate-500 mt-1">Nexus B2B · Secure hosted checkout · Nigerian naira (NGN)</p></div>
+          <button onclick="closeModal('receivePaymentModal')" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="receivePaymentForm" onsubmit="startPaystackCheckout(event)" class="p-6 space-y-4">
+          <div><label class="block text-xs font-semibold text-slate-700 mb-1">Customer email</label>
+            <input id="customerEmail" type="email" required autocomplete="email" placeholder="customer@example.com" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"></div>
+          <div><label class="block text-xs font-semibold text-slate-700 mb-1">Amount (NGN)</label>
+            <input id="customerAmount" type="number" min="100" step="1" required placeholder="5000" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"></div>
+          <div><label class="block text-xs font-semibold text-slate-700 mb-1">Payment description</label>
+            <input id="customerMemo" type="text" maxlength="120" required placeholder="What is the customer paying for?" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"></div>
+          <p class="text-[11px] text-slate-500">Your server creates the checkout session. Card details are entered on Paystack, not stored by this app. Do not use live payments until an eligible adult/business owner has completed provider onboarding and compliance checks.</p>
+          <div class="flex justify-end gap-2 border-t pt-4">
+            <button type="button" onclick="closeModal('receivePaymentModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600">Cancel</button>
+            <button id="payNowButton" type="submit" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white">Create secure checkout</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container (Replaces alert()) -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <script>
+        // ==========================================
+        // 1. INITIAL STATE & MULTI-SECTOR MOCK DATA
+        // ==========================================
+        let companies = [
+            {
+                id: 'comp-1',
+                name: 'Apex Freight & Logistics',
+                initials: 'AF',
+                sector: 'Logistics & Supply Chain',
+                location: 'Rotterdam / Lagos',
+                regId: 'B2B-8841',
+                balance: 420500.00,
+                offering: 'Intermodal Cold-Chain & Maritime Freight'
+            },
+            {
+                id: 'comp-2',
+                name: 'Stratos Cloud Systems',
+                initials: 'SC',
+                sector: 'Cloud & Enterprise SaaS',
+                location: 'San Francisco, US',
+                regId: 'B2B-3092',
+                balance: 890000.00,
+                offering: 'AI Infrastructure, ERP & Security Audits'
+            },
+            {
+                id: 'comp-3',
+                name: 'Verdant Harvest Agro',
+                initials: 'VH',
+                sector: 'AgriTech & Commodities',
+                location: 'Abuja / Nairobi',
+                regId: 'B2B-5519',
+                balance: 315000.00,
+                offering: 'Bulk Export Grains, Cocoa & Traceability'
+            },
+            {
+                id: 'comp-4',
+                name: 'Kinetix Precision Mfg',
+                initials: 'KP',
+                sector: 'Industrial Manufacturing',
+                location: 'Munich, DE',
+                regId: 'B2B-7720',
+                balance: 640200.00,
+                offering: 'CNC Robotics, Custom Alloy Components'
+            },
+            {
+                id: 'comp-5',
+                name: 'Studio Nord Creative',
+                initials: 'SN',
+                sector: 'Creative & Media Agency',
+                location: 'Stockholm, SE',
+                regId: 'B2B-1104',
+                balance: 145000.00,
+                offering: 'Global Brand Architecture & Digital Campaigns'
+            },
+            {
+                id: 'comp-6',
+                name: 'Helios Grid Renewables',
+                initials: 'HG',
+                sector: 'Renewable Energy',
+                location: 'Austin, US',
+                regId: 'B2B-9410',
+                balance: 530000.00,
+                offering: 'Industrial Microgrids & Solar Storage'
+            }
+        ];
+
+        let transactions = [
+            {
+                id: 'TX-90412',
+                date: '2026-11-19 14:22',
+                fromId: 'comp-1',
+                toId: 'comp-2',
+                type: 'Recurring Retainer',
+                rail: 'Instant Wire',
+                amount: 18500.00,
+                status: 'Completed',
+                memo: 'Fleet Telemetry & Predictive Routing SaaS License',
+                barterAsset: ''
+            },
+            {
+                id: 'TX-90415',
+                date: '2026-11-19 16:05',
+                fromId: 'comp-3',
+                toId: 'comp-1',
+                type: 'Escrow Contract',
+                rail: 'Smart Escrow',
+                amount: 64000.00,
+                status: 'In Escrow',
+                memo: '40-Container Refrigerated Cocoa Shipment to Antwerp',
+                barterAsset: ''
+            },
+            {
+                id: 'TX-90418',
+                date: '2026-11-19 17:10',
+                fromId: 'comp-4',
+                toId: 'comp-6',
+                type: 'Milestone Tranche',
+                rail: 'Smart Escrow',
+                amount: 112000.00,
+                status: 'In Escrow',
+                memo: 'Phase 2: Factory Rooftop 2MW Solar Array Installation',
+                barterAsset: ''
+            },
+            {
+                id: 'TX-90421',
+                date: '2026-11-19 17:45',
+                fromId: 'comp-2',
+                toId: 'comp-5',
+                type: 'Barter / Asset Swap',
+                rail: 'Credit Line',
+                amount: 25000.00,
+                status: 'Awaiting Approval',
+                memo: '2027 Developer Summit Rebrand & Keynote Motion Pack',
+                barterAsset: '12 Months Enterprise Cloud Hosting + GPU Cluster Credits'
+            }
+        ];
+
+        let activeCompanyId = 'comp-1';
+        let currentTab = 'ledger';
+
+        // ==========================================
+        // 2. UTILITY & FORMATTING HELPERS
+        // ==========================================
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(val);
+        }
+
+        function getCompanyById(id) {
+            return companies.find(c => c.id === id) || companies[0];
+        }
+
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-slate-900 text-white border-emerald-500/50',
+                warning: 'bg-slate-900 text-white border-amber-500/50',
+                error: 'bg-rose-950 text-white border-rose-500'
+            };
+            const iconName = type === 'error' ? 'alert-circle' : (type === 'warning' ? 'shield-alert' : 'check-circle-2');
+            const iconColor = type === 'error' ? 'text-rose-400' : (type === 'warning' ? 'text-amber-400' : 'text-emerald-400');
+
+            toast.className = `pointer-events-auto flex items-start gap-3 p-4 rounded-2xl border shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type]}`;
+            toast.innerHTML = `
+                <i data-lucide="${iconName}" class="w-5 h-5 ${iconColor} shrink-0 mt-0.5"></i>
+                <div class="flex-1">
+                    <p class="text-xs font-bold">${title}</p>
+                    <p class="text-xs text-slate-300 mt-0.5">${message}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ==========================================
+        // 3. CORE RENDERING FUNCTIONS
+        // ==========================================
+        function renderCompanySelector() {
+            const select = document.getElementById('activeCompanySelect');
+            select.innerHTML = companies.map(c =>
+                `<option value="${c.id}" ${c.id === activeCompanyId ? 'selected' : ''}>${c.name} (${c.sector.split(' ')[0]})</option>`
+            ).join('');
+            document.getElementById('badge-company-count').textContent = companies.length;
+        }
+
+        function renderActiveCompanyHeader() {
+            const active = getCompanyById(activeCompanyId);
+            document.getElementById('activeCompanyAvatar').textContent = active.initials;
+            document.getElementById('activeCompanyName').textContent = active.name;
+            document.getElementById('activeCompanyMeta').textContent = `${active.sector} • ${active.location} • Reg: #${active.regId}`;
+            document.getElementById('activeCompanyBalance').textContent = formatCurrency(active.balance);
+
+            // Calculate KPIs for active company
+            let escrowTotal = 0;
+            let escrowCount = 0;
+            let inboundTotal = 0;
+            let outboundTotal = 0;
+
+            transactions.forEach(tx => {
+                if (tx.fromId === active.id || tx.toId === active.id) {
+                    if (tx.status === 'In Escrow') {
+                        escrowTotal += tx.amount;
+                        escrowCount++;
+                    }
+                    if (tx.toId === active.id && tx.status !== 'Disputed') {
+                        inboundTotal += tx.amount;
+                    }
+                    if (tx.fromId === active.id && tx.status !== 'Disputed') {
+                        outboundTotal += tx.amount;
+                    }
+                }
+            });
+
+            document.getElementById('kpiEscrow').textContent = formatCurrency(escrowTotal);
+            document.getElementById('kpiEscrowCount').textContent = `${escrowCount} active milestone/escrow deal${escrowCount === 1 ? '' : 's'}`;
+            document.getElementById('kpiInbound').textContent = formatCurrency(inboundTotal);
+            document.getElementById('kpiOutbound').textContent = formatCurrency(outboundTotal);
+        }
+
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'Completed':
+                    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Completed</span>`;
+                case 'In Escrow':
+                    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>In Escrow</span>`;
+                case 'Awaiting Approval':
+                    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Awaiting Approval</span>`;
+                case 'Disputed':
+                    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Disputed</span>`;
+                default:
+                    return status;
+            }
+        }
+
+        function renderLedger() {
+            const tbody = document.getElementById('ledgerTableBody');
+            const emptyState = document.getElementById('emptyLedgerState');
+            const typeFilter = document.getElementById('filterTxType').value;
+            const statusFilter = document.getElementById('filterTxStatus').value;
+
+            const filtered = transactions.filter(tx => {
+                const matchType = typeFilter === 'ALL' || tx.type === typeFilter;
+                const matchStatus = statusFilter === 'ALL' || tx.status === statusFilter;
+                return matchType && matchStatus;
+            });
+
+            document.getElementById('badge-tx-count').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = filtered.map(tx => {
+                const sender = getCompanyById(tx.fromId);
+                const receiver = getCompanyById(tx.toId);
+                const isSender = tx.fromId === activeCompanyId;
+                const isReceiver = tx.toId === activeCompanyId;
+                const involvesActive = isSender || isReceiver;
+
+                // Contextual action buttons based on role & status
+                let actionButtons = `
+                    <button onclick="inspectTransaction('${tx.id}')" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition" title="Inspect Audit Receipt">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                `;
+
+                if (tx.status === 'In Escrow' && isSender) {
+                    actionButtons += `
+                        <button onclick="releaseEscrow('${tx.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+                            Release Funds
+                        </button>
+                    `;
+                } else if (tx.status === 'Awaiting Approval' && isSender) {
+                    actionButtons += `
+                        <button onclick="approveInvoice('${tx.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">
+                            Authorize & Pay
+                        </button>
+                    `;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/90 transition-colors ${involvesActive ? 'bg-indigo-50/15' : ''}">
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <span class="font-mono text-xs font-bold text-slate-900">${tx.id}</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">${tx.date}</p>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="font-semibold ${isSender ? 'text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded' : 'text-slate-800'}">${sender.name}</span>
+                                <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                <span class="font-semibold ${isReceiver ? 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded' : 'text-slate-800'}">${receiver.name}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">${sender.sector.split(' ')[0]} → ${receiver.sector.split(' ')[0]}</p>
+                        </td>
+                        <td class="py-3.5 px-4 max-w-xs">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-semibold text-slate-800">${tx.type}</span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">${tx.rail}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 truncate mt-0.5" title="${tx.memo}">${tx.memo}</p>
+                            ${tx.barterAsset ? `<p class="text-[11px] text-amber-700 font-medium mt-0.5 truncate">⇄ Swap: ${tx.barterAsset}</p>` : ''}
+                        </td>
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                            <span class="font-mono text-sm font-bold ${isReceiver ? 'text-emerald-600' : (isSender ? 'text-slate-900' : 'text-slate-700')}">
+                                ${isReceiver ? '+' : (isSender ? '-' : '')}${formatCurrency(tx.amount)}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            ${getStatusBadge(tx.status)}
+                        </td>
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center justify-end gap-1.5">
+                                ${actionButtons}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderDirectory() {
+            const grid = document.getElementById('directoryGrid');
+            const sectorFilter = document.getElementById('filterSector').value;
+
+            const filtered = companies.filter(c => sectorFilter === 'ALL' || c.sector === sectorFilter);
+
+            grid.innerHTML = filtered.map(c => {
+                const isSelf = c.id === activeCompanyId;
+                return `
+                    <div class="bg-white rounded-2xl p-5 border ${isSelf ? 'border-indigo-300 ring-2 ring-indigo-500/10' : 'border-slate-200'} shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                        <div>
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-800 font-bold flex items-center justify-center text-sm border border-slate-200">
+                                        ${c.initials}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                                            ${c.name}
+                                            ${isSelf ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-semibold">You</span>' : ''}
+                                        </h3>
+                                        <p class="text-xs text-indigo-600 font-medium">${c.sector}</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-slate-400">#${c.regId}</span>
+                            </div>
+
+                            <p class="text-xs text-slate-600 mt-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <span class="font-semibold text-slate-700">Capabilities:</span> ${c.offering}
+                            </p>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i> ${c.location}
+                            </span>
+
+                            ${isSelf ? `
+                                <span class="text-xs font-semibold text-slate-400">Active Session</span>
+                            ` : `
+                                <button onclick="openTransactionModalWithTarget('${c.id}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition">
+                                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Transact
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 4. INTERACTIVE WORKFLOWS & STATE UPDATES
+        // ==========================================
+        function switchActiveCompany(newId) {
+            activeCompanyId = newId;
+            refreshAllViews();
+            const comp = getCompanyById(newId);
+            showToast('Workspace Switched', `Now operating treasury for ${comp.name}`);
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            const ledgerView = document.getElementById('view-ledger');
+            const dirView = document.getElementById('view-directory');
+            const ledgerFilters = document.getElementById('ledgerFilters');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-600', 'text-indigo-600', 'font-semibold');
+                btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
+            });
+
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+            activeBtn.classList.add('border-indigo-600', 'text-indigo-600', 'font-semibold');
+
+            if (tabName === 'ledger') {
+                ledgerView.classList.remove('hidden');
+                dirView.classList.add('hidden');
+                ledgerFilters.classList.remove('hidden');
+                ledgerFilters.classList.add('sm:flex');
+            } else {
+                ledgerView.classList.add('hidden');
+                dirView.classList.remove('hidden');
+                ledgerFilters.classList.add('hidden');
+                ledgerFilters.classList.remove('sm:flex');
+            }
+        }
+
+        function openTransactionModal() {
+            const active = getCompanyById(activeCompanyId);
+            document.getElementById('modalSenderName').textContent = active.name;
+
+            // Populate counterparties excluding active company
+            const cpSelect = document.getElementById('txCounterparty');
+            cpSelect.innerHTML = companies
+                .filter(c => c.id !== activeCompanyId)
+                .map(c => `<option value="${c.id}">${c.name} — ${c.sector}</option>`)
+                .join('');
+
+            document.getElementById('newTransactionForm').reset();
+            toggleBarterFields();
+            updateFormLabels();
+            document.getElementById('transactionModal').classList.remove('hidden');
+        }
+
+        function openTransactionModalWithTarget(targetId) {
+            openTransactionModal();
+            document.getElementById('txCounterparty').value = targetId;
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function updateFormLabels() {
+            const dir = document.getElementById('txDirection').value;
+            const label = document.getElementById('txAmountLabel');
+            label.textContent = dir === 'OUTBOUND' ? 'Amount to Dispatch (USD)' : 'Invoice Amount Requested (USD)';
+        }
+
+        function toggleBarterFields() {
+            const type = document.getElementById('txType').value;
+            const barterBox = document.getElementById('barterAssetBox');
+            const helper = document.getElementById('txTypeHelper');
+
+            if (type === 'Barter / Asset Swap') {
+                barterBox.classList.remove('hidden');
+                helper.textContent = 'Hybrid exchange combining cash settlement with non-cash goods, credits, or services.';
+            } else {
+                barterBox.classList.add('hidden');
+                if (type === 'Escrow Contract' || type === 'Milestone Tranche') {
+                    helper.textContent = 'Funds are debited from payer and held safely in smart escrow until delivery approval.';
+                } else {
+                    helper.textContent = 'Instant settlement transfers funds immediately upon authorization.';
+                }
+            }
+        }
+
+        function handleCreateTransaction(e) {
+            e.preventDefault();
+            const direction = document.getElementById('txDirection').value;
+            const counterpartyId = document.getElementById('txCounterparty').value;
+            const type = document.getElementById('txType').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const rail = document.getElementById('txRail').value;
+            const memo = document.getElementById('txMemo').value.trim();
+            const barterAsset = document.getElementById('txBarterAsset').value.trim();
+
+            const fromId = direction === 'OUTBOUND' ? activeCompanyId : counterpartyId;
+            const toId = direction === 'OUTBOUND' ? counterpartyId : activeCompanyId;
+            const payer = getCompanyById(fromId);
+            const payee = getCompanyById(toId);
+
+            // Determine initial transaction status & treasury movement
+            let status = 'Completed';
+
+            if (direction === 'INBOUND') {
+                // Requesting payment creates an invoice awaiting payer approval
+                status = 'Awaiting Approval';
+            } else {
+                // Outbound payment: verify balance
+                if (payer.balance < amount) {
+                    showToast('Insufficient Treasury Funds', `${payer.name} lacks enough liquidity for ${formatCurrency(amount)}.`, 'error');
+                    return;
+                }
+
+                payer.balance -= amount;
+
+                if (type === 'Escrow Contract' || type === 'Milestone Tranche') {
+                    status = 'In Escrow';
+                } else {
+                    status = 'Completed';
+                    payee.balance += amount;
+                }
+            }
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+            const newTx = {
+                id: 'TX-' + Math.floor(10000 + Math.random() * 90000),
+                date: timestamp,
+                fromId,
+                toId,
+                type,
+                rail,
+                amount,
+                status,
+                memo,
+                barterAsset: type === 'Barter / Asset Swap' ? barterAsset : ''
+            };
+
+            transactions.unshift(newTx);
+            closeModal('transactionModal');
+            refreshAllViews();
+
+            showToast(
+                status === 'In Escrow' ? 'Escrow Funded & Locked' : (status === 'Awaiting Approval' ? 'Invoice Dispatched' : 'Settlement Completed'),
+                `${newTx.id} (${formatCurrency(amount)}) recorded on the clearing ledger.`
+            );
+        }
+
+        function releaseEscrow(txId) {
+            const tx = transactions.find(t => t.id === txId);
+            if (!tx || tx.status !== 'In Escrow') return;
+
+            const payee = getCompanyById(tx.toId);
+            payee.balance += tx.amount;
+            tx.status = 'Completed';
+
+            refreshAllViews();
+            showToast('Escrow Released', `${formatCurrency(tx.amount)} has been settled to ${payee.name}.`);
+        }
+
+        function approveInvoice(txId) {
+            const tx = transactions.find(t => t.id === txId);
+            if (!tx || tx.status !== 'Awaiting Approval') return;
+
+            const payer = getCompanyById(tx.fromId);
+            const payee = getCompanyById(tx.toId);
+
+            if (payer.balance < tx.amount) {
+                showToast('Insufficient Funds', `Please add operating capital before settling ${tx.id}.`, 'error');
+                return;
+            }
+
+            payer.balance -= tx.amount;
+            if (tx.type === 'Escrow Contract' || tx.type === 'Milestone Tranche') {
+                tx.status = 'In Escrow';
+                showToast('Invoice Funded into Escrow', `${formatCurrency(tx.amount)} locked for ${payee.name}.`);
+            } else {
+                payee.balance += tx.amount;
+                tx.status = 'Completed';
+                showToast('Invoice Paid', `${formatCurrency(tx.amount)} transferred to ${payee.name}.`);
+            }
+
+            refreshAllViews();
+        }
+
+        function openNewCompanyModal() {
+            document.getElementById('newCompanyModal').classList.remove('hidden');
+        }
+
+        function handleRegisterCompany(e) {
+            e.preventDefault();
+            const name = document.getElementById('compName').value.trim();
+            const sector = document.getElementById('compSector').value;
+            const location = document.getElementById('compLocation').value.trim();
+            const balance = parseFloat(document.getElementById('compBalance').value);
+            const offering = document.getElementById('compOffering').value.trim();
+
+            const words = name.split(' ');
+            const initials = (words[0][0] + (words[1] ? words[1][0] : words[0][1] || 'X')).toUpperCase();
+
+            const newComp = {
+                id: 'comp-' + Date.now(),
+                name,
+                initials,
+                sector,
+                location,
+                regId: 'B2B-' + Math.floor(1000 + Math.random() * 9000),
+                balance,
+                offering
+            };
+
+            companies.push(newComp);
+            activeCompanyId = newComp.id;
+            closeModal('newCompanyModal');
+            refreshAllViews();
+            showToast('Entity Onboarded', `${name} is now KYB-verified and active.`);
+        }
+
+        function openTopUpModal() {
+            const active = getCompanyById(activeCompanyId);
+            document.getElementById('topUpCompanyName').textContent = active.name;
+            document.getElementById('topUpModal').classList.remove('hidden');
+        }
+
+        function handleTopUp(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('topUpAmount').value);
+            const active = getCompanyById(activeCompanyId);
+            active.balance += amount;
+            closeModal('topUpModal');
+            refreshAllViews();
+            showToast('Treasury Credited', `Added ${formatCurrency(amount)} to ${active.name}.`);
+        }
+
+        function inspectTransaction(txId) {
+            const tx = transactions.find(t => t.id === txId);
+            if (!tx) return;
+            const sender = getCompanyById(tx.fromId);
+            const receiver = getCompanyById(tx.toId);
+
+            document.getElementById('detailModalBody').innerHTML = `
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <span class="text-xs text-slate-400">Clearing Reference</span>
+                        <p class="font-mono font-bold text-base text-slate-900">${tx.id}</p>
+                    </div>
+                    ${getStatusBadge(tx.status)}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div>
+                        <span class="text-[11px] uppercase font-semibold text-slate-400">Originator (Payer)</span>
+                        <p class="font-bold text-slate-900 text-xs mt-0.5">${sender.name}</p>
+                        <p class="text-[11px] text-slate-500">${sender.sector}</p>
+                    </div>
+                    <div>
+                        <span class="text-[11px] uppercase font-semibold text-slate-400">Beneficiary (Payee)</span>
+                        <p class="font-bold text-slate-900 text-xs mt-0.5">${receiver.name}</p>
+                        <p class="text-[11px] text-slate-500">${receiver.sector}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Instrument Type</span>
+                        <span class="font-semibold text-slate-900">${tx.type}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Clearing Rail</span>
+                        <span class="font-mono font-medium text-slate-900">${tx.rail}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Timestamp</span>
+                        <span class="font-mono text-slate-700">${tx.date}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Settlement Value</span>
+                        <span class="font-mono font-bold text-sm text-indigo-600">${formatCurrency(tx.amount)}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs font-semibold text-slate-700">Contract / Deliverable Memo</span>
+                    <p class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 mt-1">${tx.memo}</p>
+                </div>
+
+                ${tx.barterAsset ? `
+                    <div>
+                        <span class="text-xs font-semibold text-amber-800">In-Kind / Barter Counter-Asset</span>
+                        <p class="text-xs text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200 mt-1">${tx.barterAsset}</p>
+                    </div>
+                ` : ''}
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+
+        // Real payment collection is server-backed. Never put a Paystack secret key in this file.
+        function openReceivePaymentModal() {
+            document.getElementById('receivePaymentModal').classList.remove('hidden');
+        }
+
+        async function startPaystackCheckout(e) {
+            e.preventDefault();
+            const button = document.getElementById('payNowButton');
+            const amount = Number(document.getElementById('customerAmount').value);
+            const email = document.getElementById('customerEmail').value.trim();
+            const memo = document.getElementById('customerMemo').value.trim();
+            if (!Number.isFinite(amount) || amount < 100 || !email || !memo) {
+                showToast('Check payment details', 'Enter a valid email, description and amount of at least NGN 100.', 'error');
+                return;
+            }
+            button.disabled = true;
+            button.textContent = 'Connecting securely…';
+            try {
+                const response = await fetch('/api/payments/initialize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, amount, memo })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.authorization_url) throw new Error(data.error || 'Could not create checkout.');
+                window.location.assign(data.authorization_url);
+            } catch (err) {
+                showToast('Checkout unavailable', err.message || 'Start the server and configure Paystack test credentials.', 'error');
+                button.disabled = false;
+                button.textContent = 'Create secure checkout';
+            }
+        }
+
+        async function showPaymentReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const reference = params.get('reference');
+            if (!reference) return;
+            try {
+                const response = await fetch('/api/payments/verify/' + encodeURIComponent(reference));
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Payment verification failed.');
+                showToast(result.status === 'success' ? 'Payment verified' : 'Payment not completed',
+                    result.status === 'success' ? 'Paystack confirms this payment. Reference: ' + reference : 'No successful payment was confirmed.', 
+                    result.status === 'success' ? 'success' : 'warning');
+            } catch (err) {
+                showToast('Verification pending', err.message, 'warning');
+            } finally {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        function refreshAllViews() {
+            renderCompanySelector();
+            renderActiveCompanyHeader();
+            renderLedger();
+            renderDirectory();
+        }
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshAllViews();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
